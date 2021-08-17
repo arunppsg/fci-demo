@@ -221,3 +221,61 @@ def load_pred_data(rp,bplChangeRate,pop,option,endYear):
     fut_data=fut_data[fut_data['year']>2019]
     fut_data=fut_data.fillna(0)
     return fut_data
+
+
+
+def bplPlot():
+
+    st.sidebar.write('''
+    ### Rice and Wheat Forecasts using BPL model
+    ''')
+    
+    bplChangeRate = st.sidebar.number_input('bpl change rate( in % )')
+    
+    bplChangeRate=bplChangeRate/100
+    pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
+    bpl_perc2011 = pd.read_excel("src/data/BPL data.xlsx")
+    bpl_perc2011.rename({"2011-12 Perc of Persons":"percent"}, axis=1, inplace=True)
+    bpl_perc2011['year'] = 2011
+
+    bpl = generate_bpl_data(pop, bpl_perc2011, bplChangeRate)
+
+
+    rw=load_rw()
+
+
+    rp = pd.merge(rw, bpl, on=['State.UT', 'year'], how='inner')
+
+    rp = remove_outliers(rp, ["bpl_pop", "rice_allotment", "rice_moving_perc", "wheat_moving_perc"])
+
+
+    rice_bpl_fit = linear_model.LinearRegression().fit(rp[['bpl_pop', 'rice_moving_perc']], rp['rice_allotment'])
+
+    wheat_bpl_fit = linear_model.LinearRegression().fit(rp[['bpl_pop', 'wheat_moving_perc']], rp['wheat_allotment'])
+
+    #prediction
+    
+
+    option = st.sidebar.selectbox('choose state',list(rw['State.UT'].unique()))
+
+    endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
+   
+    fut_data = load_pred_data(rp,bplChangeRate,pop,option,endYear)
+
+    fut_data["Rice_Allotment"]=rice_bpl_fit.predict(fut_data[["bpl_pop","rice_perc"]])
+    fut_data["Wheat_Allotment"]=wheat_bpl_fit.predict(fut_data[["bpl_pop","wheat_perc"]])
+    fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
+    fut[fut<0]=0
+    fut=fut.round(2)
+
+    
+
+    st.write(f"""
+    ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
+    """)
+  
+    st.write("""
+    ### The Unit is '000 Metric Tonnes
+    """)
+
+    st.dataframe(fut[["year","Rice_Allotment","Wheat_Allotment"]])
