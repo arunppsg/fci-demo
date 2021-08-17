@@ -158,17 +158,15 @@ def bplPopPlot(vis):
 
     option = st.sidebar.selectbox('choose state',vals)
     
-    rice_inc=st.sidebar.number_input('Percentage change for MSP of rice')
+    rice_inc=st.sidebar.number_input('Rice MSP change rate (in %)')
     
-    wheat_inc = st.sidebar.number_input('Percentage change for MSP of wheat')
+    wheat_inc = st.sidebar.number_input('Wheat MSP change rate(in %)')
 
     endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
-
     
     st.write(f"""
         ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
         """)
-    
 
     if vis == "Table":
         fut = all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc)
