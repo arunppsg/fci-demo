@@ -1,3 +1,5 @@
+
+
 import streamlit as st 
 import numpy as np 
 import pandas as pd
@@ -6,13 +8,13 @@ from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
+import plotly.graph_objects as go
 
 
 def remove_outliers(df, cols):
     for col in cols:
         df = df[np.abs(stats.zscore(df[col]) <= 3)].reset_index(drop=True)
     return df
-
 
 
 def generate_bpl_data(pop, bpl, bpl_cr):
@@ -74,138 +76,6 @@ def load_rw():
     return rw
 
 
-
-def table():
-
-    st.sidebar.write('''
-    ### Rice and Wheat Forecasts using population model
-    ''')
-    pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
-
-    rw=load_rw()
-
-    rp = pd.merge(rw, pop, on=['State.UT', 'year'], how='inner')
-    rp = remove_outliers(rp, ["Population", "rice_allotment", "rice_moving_perc", "wheat_moving_perc"])
-
-
-    rice_pop_fit = linear_model.LinearRegression().fit(rp[['Population', 'rice_moving_perc']], rp['rice_allotment'])
-
-
-    wp = pd.merge(rw, pop, on=['State.UT', 'year'], how='inner')
-    wp = remove_outliers(wp, ["Population", "wheat_allotment", "rice_moving_perc", "wheat_moving_perc"])
-    wheat_pop_fit = linear_model.LinearRegression().fit(wp[['Population', 'wheat_moving_perc']], wp['wheat_allotment'])
-
-
-
-    #prediction starts
-   
-    endYear2=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
-
-    historicAvg = rp.groupby("State.UT").mean()[["rice_perc","wheat_perc"]]
-
-    pred_data=pd.merge(pop[pop["year"].between(2020,int(endYear2))], historicAvg, on=['State.UT'], how='inner')
-
-    pred_data["rice_allotment"]=0
-    pred_data["wheat_allotment"]=0
-
-
-    pred_data["rice_allotment"] = rice_pop_fit.predict(pred_data[['Population','rice_perc']])
-    pred_data["wheat_allotment"] = wheat_pop_fit.predict(pred_data[['Population','wheat_perc']])
-    pred_data=pred_data.round(2)
-
-
-    st.write("""
-    ### Table 2
-    """)
-    st.write(f"""
-    ## Rice Forecasts for 2020- {endYear2}
-    """)
-
-    st.write("""
-    ### The Unit is '000 Metric Tonnes
-    """)
-
-    rice_allot=pred_data[["year","State.UT","rice_allotment"]]
-
-
-
-    newf = rice_allot.pivot(index='State.UT', columns='year')
-    newf.columns=list(range(2020,endYear2+1))
-    newf[newf<0]=0
-
-    st.dataframe(newf)
-
-
-
-    st.write("""
-    ### Table 3
-    """)
-    st.write(f"""
-    ## Wheat Forecasts for 2020-{endYear2}
-    """)
-
-    st.write("""
-    ### The Unit is '000 Metric Tonnes
-    """)
-
-    wheat_allot=pred_data[["year","State.UT","wheat_allotment"]]
-    newf2 = wheat_allot.pivot(index='State.UT', columns='year')
-    newf2.columns=list(range(2020,endYear2+1))
-    newf2[newf2<0]=0
-
-    st.dataframe(newf2)
-
-
-    st.write(f"""
-    ### Table 5.2 Rice and Wheat Procurement Forecasts for 2020 - {endYear2}
-    """)
-
-    st.write("""
-    ### The Unit is '000 Metric Tonnes
-    """)
-
-    r=pred_data[["year","State.UT","rice_allotment","wheat_allotment"]].copy()
-    r=r.groupby("year").sum().copy()
-    r["total"]=r["rice_allotment"]+r["wheat_allotment"]
-
-    r["msp_rice"]=0
-    r["msp_wheat"]=0
-
-    rice_inc=st.sidebar.number_input('Percentage change for MSP of rice')
-    wheat_inc = st.sidebar.number_input('Percentage change for MSP of wheat')
-
-    for i in range(0,(endYear2-2020)+1):
-        if i==0:
-            r["msp_rice"].iloc[0]=1868
-            r["msp_wheat"].iloc[0]=1925
-        elif i==1:
-            r["msp_rice"].iloc[1]=1940
-            r["msp_wheat"].iloc[1]=1975
-        else:
-            r["msp_rice"].iloc[i]= r["msp_rice"].iloc[i-1]*(1+(rice_inc/100))
-            r["msp_wheat"].iloc[i]= r["msp_wheat"].iloc[i-1]*(1+(wheat_inc/100))
-
-                                                    
-    r['cost']=(r['msp_rice']*r["rice_allotment"]+r['msp_wheat']*r['wheat_allotment'])
-
-    r.rename({"rice_allotment": "Rice Procurement", 
-           "wheat_allotment": "Wheat Procurement"}, 
-          axis = "columns", inplace = True)
-
-    st.dataframe(r[["Rice Procurement","Wheat Procurement"]])
-
-
-
-    st.write(f"""
-    ### Table 5.3 Total Grain Procurement and Cost Forecasts for 2020 - {endYear2}
-    """)
-
-    r.rename({"total": "Total Grain Procurement (in '000 MTs)", 
-           "cost": "Total Procurement Cost(in Crores)"}, 
-          axis = "columns", inplace = True)
-    st.dataframe(r[["Total Grain Procurement (in '000 MTs)","Total Procurement Cost(in Crores)"]])
-
-
 def load_pred_data(rp,bplChangeRate,pop,option,endYear):
     
     future_bpl=rp[rp['year']==2019][["State.UT","bpl_pop","year"]]
@@ -222,73 +92,47 @@ def load_pred_data(rp,bplChangeRate,pop,option,endYear):
     fut_data=fut_data.fillna(0)
     return fut_data
 
-
-
-def bplPlot():
-
-    st.sidebar.write('''
-    ### Rice and Wheat Forecasts using BPL model
-    ''')
-    
-    bplChangeRate = st.sidebar.number_input('bpl change rate( in % )')
-    
-    bplChangeRate=bplChangeRate/100
-    pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
-    bpl_perc2011 = pd.read_excel("src/data/BPL data.xlsx")
-    bpl_perc2011.rename({"2011-12 Perc of Persons":"percent"}, axis=1, inplace=True)
-    bpl_perc2011['year'] = 2011
-
-    bpl = generate_bpl_data(pop, bpl_perc2011, bplChangeRate)
-
-
-    rw=load_rw()
-
-
-    rp = pd.merge(rw, bpl, on=['State.UT', 'year'], how='inner')
-
-    rp = remove_outliers(rp, ["bpl_pop", "rice_allotment", "rice_moving_perc", "wheat_moving_perc"])
-
-
-    rice_bpl_fit = linear_model.LinearRegression().fit(rp[['bpl_pop', 'rice_moving_perc']], rp['rice_allotment'])
-
-    wheat_bpl_fit = linear_model.LinearRegression().fit(rp[['bpl_pop', 'wheat_moving_perc']], rp['wheat_allotment'])
-
-    #prediction
-    
-
-    option = st.sidebar.selectbox('choose state',list(rw['State.UT'].unique()))
-
-    endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
-   
+def all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc):
     fut_data = load_pred_data(rp,bplChangeRate,pop,option,endYear)
+    fut_data["Rice_Allotment"]=rice_bpl_fit.predict(fut_data[["Population","bpl_pop","rice_perc"]])
+    fut_data["Wheat_Allotment"]=wheat_bpl_fit.predict(fut_data[["Population","bpl_pop","wheat_perc"]])
 
-    fut_data["Rice_Allotment"]=rice_bpl_fit.predict(fut_data[["bpl_pop","rice_perc"]])
-    fut_data["Wheat_Allotment"]=wheat_bpl_fit.predict(fut_data[["bpl_pop","wheat_perc"]])
-    fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
+    if option=="ALL-INDIA":
+        fut = fut_data.groupby(["year"]).sum()[['Rice_Allotment','Wheat_Allotment']].copy()
+        fut["year"]=list(range(2020,endYear+1))
+    else:
+        fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
     fut[fut<0]=0
     fut=fut.round(2)
 
-    
+    fut["msp_rice"]=0
+    fut["msp_wheat"]=0
 
-    st.write(f"""
-    ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
-    """)
   
-    st.write("""
-    ### The Unit is '000 Metric Tonnes
-    """)
+    for i in range(0,(endYear-2020)+1):
+        if i==0:
+            fut["msp_rice"].iloc[0]=1868
+            fut["msp_wheat"].iloc[0]=1925
+        elif i==1:
+            fut["msp_rice"].iloc[1]=1940
+            fut["msp_wheat"].iloc[1]=1975
+        else:
+            fut["msp_rice"].iloc[i]= fut["msp_rice"].iloc[i-1]*(1+(rice_inc/100))
+            fut["msp_wheat"].iloc[i]= fut["msp_wheat"].iloc[i-1]*(1+(wheat_inc/100))
 
-    st.dataframe(fut[["year","Rice_Allotment","Wheat_Allotment"]])
+    fut['cost']=(fut['msp_rice']*fut["Rice_Allotment"]+fut['msp_wheat']*fut['Wheat_Allotment'])*(10000/10000000)
+
+    return fut 
 
 
-
-
-def bplPopPlot():
+def bplPopPlot(vis):
     
+
     st.sidebar.write('''
     ### Rice and Wheat Forecasts using Population and BPL model
     ''')
     
+
     bplChangeRate = st.sidebar.number_input('bpl change rate( in % )')
     pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
     bpl_perc2011 = pd.read_excel("src/data/BPL data.xlsx")
@@ -309,29 +153,87 @@ def bplPopPlot():
 
     #prediction
 
+    vals=list(rw['State.UT'].unique())
+    vals.append("ALL-INDIA")
 
-    option = st.sidebar.selectbox('choose state',list(rw['State.UT'].unique()))
+    option = st.sidebar.selectbox('choose state',vals)
+    
+    rice_inc=st.sidebar.number_input('Rice MSP change rate (in %)')
+    
+    wheat_inc = st.sidebar.number_input('Wheat MSP change rate(in %)')
 
     endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
-
-    fut_data = load_pred_data(rp,bplChangeRate,pop,option,endYear)
-
-
-    fut_data["Rice_Allotment"]=rice_bpl_fit.predict(fut_data[["Population","bpl_pop","rice_perc"]])
-    fut_data["Wheat_Allotment"]=wheat_bpl_fit.predict(fut_data[["Population","bpl_pop","wheat_perc"]])
-    fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
-    fut[fut<0]=0
-    fut=fut.round(2)
-
-
     
     st.write(f"""
-    ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
-    """)
-  
-    st.write("""
-    ### The Unit is '000 Metric Tonnes
-    """)
+        ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
+        """)
 
-    st.dataframe(fut[["year","Rice_Allotment","Wheat_Allotment"]])
+    if vis == "Table":
+        fut = all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc)
 
+
+        fut.rename({"year":"Year","msp_rice":"Rice_MSP","msp_wheat":"Wheat_MSP",
+            "cost":"Procurement_Cost"}, 
+            axis = "columns", inplace = True)
+
+        st.dataframe(fut[["Year","Rice_Allotment","Wheat_Allotment","Rice_MSP","Wheat_MSP","Procurement_Cost"]])
+
+    else:
+        fig =  get_food_subsidy_graph_rice(all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc),option,endYear)
+        fig2 =  get_food_subsidy_graph_wheat(all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc),option,endYear)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.plotly_chart(fig2, use_container_width=True)
+
+    st.write(f''' 
+        ### Models: 
+        #### Rice_Allotment = C0population + C1bpl_population + C2rice_moving_perc + C3
+        #### Wheat_Allotment = C0population + C1bpl_population + C2wheat_moving_perc + C3
+        ### Units:
+        #### Allotment unit is '000 Metric Tonnes
+        #### MSP Price is for Per Qunital (INR)
+        #### Procurement Cost is in Crores (INR)
+
+        ''')
+
+def get_food_subsidy_graph_rice(df,option,endYear):
+	fig = go.Figure()
+
+	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['Rice_Allotment'], name='Rice Allotment',
+	                         line=dict(width=4)))
+	
+	fig.update_layout(
+	    title={'text':f'Rice Allotment Forecasts for {option} till {endYear}'
+	          },
+	    xaxis_title="Year",
+	    yaxis_title="Allotment in '000 MTs",
+	    legend_title="Legend",
+	    autosize=True
+	
+	)
+	fig.update_xaxes(type='category',
+	                tickangle=45)
+
+	return fig
+
+
+def get_food_subsidy_graph_wheat(df,option,endYear):
+	fig = go.Figure()
+
+	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['Wheat_Allotment'], name='Wheat Allotment',
+	                         line=dict(width=4)))
+	
+	fig.update_layout(
+	    title={'text':f'Wheat Allotment Forecasts for {option} till {endYear}'
+	          },
+	    xaxis_title="Year",
+	    yaxis_title="Allotment in '000 MTs",
+	    legend_title="Legend",
+	    autosize=True
+	
+	)
+	fig.update_xaxes(type='category',
+	                tickangle=45)
+
+	return fig
