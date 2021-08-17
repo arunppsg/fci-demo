@@ -10,7 +10,7 @@ st.title('''FCI COST FORECASTING
 ''')
 
 
-vis = st.selectbox('Choose Visualization Type', ["Line Plot", "Table"])
+vis = st.selectbox('Choose Visualization Type', ["Table","Line Plot"])
 Models.bplPopPlot(vis)
 
 st.write("## Other Statistics of Food Corporation of India")
