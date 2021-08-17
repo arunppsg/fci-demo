@@ -198,3 +198,44 @@ def bplPopPlot(vis):
         #### Procurement Cost is in Crores (INR)
 
         ''')
+
+def get_food_subsidy_graph_rice(df,option,endYear):
+	fig = go.Figure()
+
+	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['Rice_Allotment'], name='Rice Allotment',
+	                         line=dict(width=4)))
+	
+	fig.update_layout(
+	    title={'text':f'Rice Allotment Forecasts for {option} till {endYear}'
+	          },
+	    xaxis_title="Year",
+	    yaxis_title="Allotment in '000 MTs",
+	    legend_title="Legend",
+	    autosize=True
+	
+	)
+	fig.update_xaxes(type='category',
+	                tickangle=45)
+
+	return fig
+
+
+def get_food_subsidy_graph_wheat(df,option,endYear):
+	fig = go.Figure()
+
+	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['Wheat_Allotment'], name='Wheat Allotment',
+	                         line=dict(width=4)))
+	
+	fig.update_layout(
+	    title={'text':f'Wheat Allotment Forecasts for {option} till {endYear}'
+	          },
+	    xaxis_title="Year",
+	    yaxis_title="Allotment in '000 MTs",
+	    legend_title="Legend",
+	    autosize=True
+	
+	)
+	fig.update_xaxes(type='category',
+	                tickangle=45)
+
+	return fig
