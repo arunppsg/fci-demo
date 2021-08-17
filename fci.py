@@ -13,5 +13,7 @@ st.title('''FCI COST FORECASTING
 vis = st.selectbox('Choose Visualization Type', ["Line Plot", "Table"])
 Models.bplPopPlot(vis)
 
+st.write("## Other Statistics of Food Corporation of India")
 st.plotly_chart(graphs.get_food_subsidy_graph(), use_container_width=True)
 st.plotly_chart(graphs.get_year_wise_total_ao_graph(), use_container_width=True)
+
