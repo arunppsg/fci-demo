@@ -1,8 +1,5 @@
-
-
 import streamlit as st 
 import numpy as np 
-import pandas as pd
 from scipy import stats
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -10,7 +7,9 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 import plotly.graph_objects as go
 
-
+import pandas as pd
+# For hiding SettingWithCopyWarning
+pd.options.mode.chained_assignment = None  # default='warn'
 def remove_outliers(df, cols):
     for col in cols:
         df = df[np.abs(stats.zscore(df[col]) <= 3)].reset_index(drop=True)
@@ -168,23 +167,24 @@ def bplPopPlot(vis):
         ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
         """)
 
-    if vis == "Table":
-        fut = all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc)
+    fut = all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc)
+    fut.rename({"year":"Year","msp_rice":"Rice_MSP","msp_wheat":"Wheat_MSP",
+		"cost":"Procurement_Cost"}, 
+        axis = "columns", inplace = True)
 
-
-        fut.rename({"year":"Year","msp_rice":"Rice_MSP","msp_wheat":"Wheat_MSP",
-            "cost":"Procurement_Cost"}, 
-            axis = "columns", inplace = True)
-
+    if vis == "Table":    
         st.dataframe(fut[["Year","Rice_Allotment","Wheat_Allotment","Rice_MSP","Wheat_MSP","Procurement_Cost"]])
 
     else:
-        fig =  get_food_subsidy_graph_rice(all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc),option,endYear)
-        fig2 =  get_food_subsidy_graph_wheat(all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc),option,endYear)
+        fig =  get_food_subsidy_graph_rice(fut, option, endYear)
+        fig2 =  get_food_subsidy_graph_wheat(fut, option,endYear)
 
         st.plotly_chart(fig, use_container_width=True)
 
         st.plotly_chart(fig2, use_container_width=True)
+	
+    total_cost_fig = get_total_procurement_cost(fut[["Year", "Procurement_Cost"]], option, endYear)
+    st.plotly_chart(total_cost_fig, use_container_width=True)
 
     st.write(f''' 
         ### Models: 
@@ -200,20 +200,20 @@ def bplPopPlot(vis):
 def get_food_subsidy_graph_rice(df,option,endYear):
 	fig = go.Figure()
 
-	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['Rice_Allotment'], name='Rice Allotment',
-	                         line=dict(width=4)))
+	fig.add_trace(go.Scatter(x=df['Year'].astype(str), y=df['Rice_Allotment'], name='Rice Allotment',
+							 line=dict(width=4)))
 	
 	fig.update_layout(
-	    title={'text':f'Rice Allotment Forecasts for {option} till {endYear}'
-	          },
-	    xaxis_title="Year",
-	    yaxis_title="Allotment in '000 MTs",
-	    legend_title="Legend",
-	    autosize=True
+		title={'text':f'Rice Allotment Forecasts for {option} till {endYear}'
+			  },
+		xaxis_title="Year",
+		yaxis_title="Allotment in '000 MTs",
+		legend_title="Legend",
+		autosize=True
 	
 	)
 	fig.update_xaxes(type='category',
-	                tickangle=45)
+					tickangle=45)
 
 	return fig
 
@@ -221,19 +221,33 @@ def get_food_subsidy_graph_rice(df,option,endYear):
 def get_food_subsidy_graph_wheat(df,option,endYear):
 	fig = go.Figure()
 
-	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['Wheat_Allotment'], name='Wheat Allotment',
-	                         line=dict(width=4)))
+	fig.add_trace(go.Scatter(x=df['Year'].astype(str), y=df['Wheat_Allotment'], name='Wheat Allotment',
+							 line=dict(width=4)))
 	
 	fig.update_layout(
-	    title={'text':f'Wheat Allotment Forecasts for {option} till {endYear}'
-	          },
-	    xaxis_title="Year",
-	    yaxis_title="Allotment in '000 MTs",
-	    legend_title="Legend",
-	    autosize=True
+		title={'text':f'Wheat Allotment Forecasts for {option} till {endYear}'
+			  },
+		xaxis_title="Year",
+		yaxis_title="Allotment in '000 MTs",
+		legend_title="Legend",
+		autosize=True
 	
 	)
 	fig.update_xaxes(type='category',
-	                tickangle=45)
+					tickangle=45)
 
+	return fig
+
+def get_total_procurement_cost(df, option, endYear):
+	fig = go.Figure()
+	fig.add_trace(go.Scatter(x=df['Year'].astype(str), y=df['Procurement_Cost'],
+								name='Procurement Cost', line=dict(width=4)))
+	fig.update_layout(
+		title={'text':f'Total Procurement Costs of Rice and Wheat for {option} from 2020 till {endYear}'},
+		xaxis_title="Year",
+		yaxis_title="Cost in Rs. Crores",
+		legend_title="Legend",
+		autosize=True
+	)
+	fig.update_xaxes(type='category', tickangle=45)
 	return fig
