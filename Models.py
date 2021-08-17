@@ -34,3 +34,42 @@ def generate_bpl_data(pop, bpl, bpl_cr):
     bpl = bpl[(bpl['bpl_pop'] > 0)]
     bpl['log_bpl_pop'] = np.log1p(bpl['Population'])
     return bpl
+
+
+def load_rw():
+    rice = pd.read_excel("src/data/rice.xlsx")
+    wheat = pd.read_excel("src/data/wheat.xlsx")
+    #print (rice.shape)
+
+    rice = remove_outliers(rice, ["offtake", "allotment"])
+    wheat = remove_outliers(wheat, ["offtake", "allotment"])
+    #print (rice.shape)
+
+    r = rice.copy()
+    w = wheat.copy()
+    r.rename({"allotment":"rice_allotment"}, axis=1, inplace=True)
+    w.rename({"allotment":"wheat_allotment"}, axis=1, inplace=True)
+    r.drop(["zone", "offtake"], axis=1, inplace=True)
+    w.drop(["zone", "offtake"], axis=1, inplace=True)
+    rw = pd.merge(r, w, on=['State.UT', 'year'], how='inner')
+
+    rw['rice_perc'] = rw['rice_allotment'] / (rw['rice_allotment'] + rw['wheat_allotment'])
+    rw['wheat_perc'] = rw['wheat_allotment'] / (rw['rice_allotment'] + rw['wheat_allotment'])
+
+
+    rw['rice_moving_perc'] = 0
+    rw['wheat_moving_perc'] = 0
+
+
+    for year in range(2006, 2020):
+        for state in list(rw['State.UT'].unique()):
+            df2 = rw[((rw['State.UT'] == state) & ((rw['year'] < year) & (rw['year'] >= year-3)))]
+            r_m_p, w_m_p = df2['rice_perc'].mean(), df2['wheat_perc'].mean()
+            idx = rw[((rw['State.UT'] == state) & (rw['year'] == year))].index
+            if len(idx) > 0:
+                rw['rice_moving_perc'][idx] = r_m_p
+                rw['wheat_moving_perc'][idx] = w_m_p
+
+    rw = rw[(rw['rice_moving_perc'] > 0) & (rw['wheat_moving_perc'] > 0)]
+    return rw
+
