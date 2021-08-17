@@ -128,11 +128,11 @@ def bplPopPlot(vis):
     
 
     st.sidebar.write('''
-    ### Rice and Wheat Forecasts using Population and BPL model
+    ### Rice and Wheat Forecasts
     ''')
     
 
-    bplChangeRate = st.sidebar.number_input('bpl change rate( in % )')
+    bplChangeRate = st.sidebar.number_input('BPL Change Rate(in %)')
     pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
     bpl_perc2011 = pd.read_excel("src/data/BPL data.xlsx")
     bpl_perc2011.rename({"2011-12 Perc of Persons":"percent"}, axis=1, inplace=True)
@@ -153,13 +153,13 @@ def bplPopPlot(vis):
     #prediction
 
     vals=list(rw['State.UT'].unique())
-    vals.append("ALL-INDIA")
+    vals.insert(0, "ALL-INDIA")
 
-    option = st.sidebar.selectbox('choose state',vals)
+    option = st.sidebar.selectbox('State',vals)
     
-    rice_inc=st.sidebar.number_input('Rice MSP change rate (in %)')
+    rice_inc=st.sidebar.number_input('Rice MSP Change Rate (in %)')
     
-    wheat_inc = st.sidebar.number_input('Wheat MSP change rate(in %)')
+    wheat_inc = st.sidebar.number_input('Wheat MSP Change Rate(in %)')
 
     endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
     
@@ -186,16 +186,21 @@ def bplPopPlot(vis):
     total_cost_fig = get_total_procurement_cost(fut[["Year", "Procurement_Cost"]], option, endYear)
     st.plotly_chart(total_cost_fig, use_container_width=True)
 
-    st.write(f''' 
-        ### Models: 
-        #### Rice_Allotment = C0population + C1bpl_population + C2rice_moving_perc + C3
-        #### Wheat_Allotment = C0population + C1bpl_population + C2wheat_moving_perc + C3
-        ### Units:
-        #### Allotment unit is '000 Metric Tonnes
-        #### MSP Price is for Per Qunital (INR)
-        #### Procurement Cost is in Crores (INR)
-
+    st.write(f'''
+        ### Prediction Units:
+        Allotment - '000 Metric Tonnes;
+		
+        Procurement Cost  - Crores (INR)
         ''')
+
+    st.write(f'''
+		### Model used for rice prediction
+		$rice\_allotment = C_0 population + C_1 bpl\_population + C_2 rice\_moving\_perc + C_3$
+		''')
+    st.write(f'''
+		### Model used for wheat prediction
+		$wheat\_allotment = D_0 population + D_1 bpl\_population + D_2 wheat\_moving\_perc + D_3$
+		''')
 
 def get_food_subsidy_graph_rice(df,option,endYear):
 	fig = go.Figure()
