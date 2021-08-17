@@ -87,7 +87,7 @@ def load_pred_data(rp,bplChangeRate,pop,option,endYear):
     fut_data["rice_perc"]=rp[rp["State.UT"]==option]["rice_perc"].mean()
     fut_data["wheat_perc"]=rp[rp["State.UT"]==option]["wheat_perc"].mean()
 
-    fut_data=fut_data[fut_data['year']>2019]
+    fut_data=fut_data[fut_data['year']>2020]
     fut_data=fut_data.fillna(0)
     return fut_data
 
@@ -98,7 +98,7 @@ def all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit
 
     if option=="ALL-INDIA":
         fut = fut_data.groupby(["year"]).sum()[['Rice_Allotment','Wheat_Allotment']].copy()
-        fut["year"]=list(range(2020,endYear+1))
+        fut["year"]=list(range(2021,endYear+1))
     else:
         fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
     fut[fut<0]=0
@@ -108,7 +108,7 @@ def all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit
     fut["msp_wheat"]=0
 
   
-    for i in range(0,(endYear-2020)+1):
+    for i in range(0,(endYear-2021)+1):
         if i==0:
             fut["msp_rice"].iloc[0]=1868
             fut["msp_wheat"].iloc[0]=1925
@@ -161,19 +161,21 @@ def bplPopPlot(vis):
     
     wheat_inc = st.sidebar.number_input('Wheat MSP Change Rate(in %)')
 
-    endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
+    endYear=st.sidebar.slider('Prediction upto (max year 2036)',2021,2036)
     
     st.write(f"""
-        ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
+        ### Rice and Wheat Forecasts for {option} from 2021 to {endYear}
         """)
 
     fut = all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc)
     fut.rename({"year":"Year","msp_rice":"Rice_MSP","msp_wheat":"Wheat_MSP",
-		"cost":"Procurement_Cost"}, 
+		"cost":"Total_Procurement_Cost"}, 
         axis = "columns", inplace = True)
 
     if vis == "Table":    
-        st.dataframe(fut[["Year","Rice_Allotment","Wheat_Allotment","Rice_MSP","Wheat_MSP","Procurement_Cost"]])
+        #st.dataframe(fut[["Year","Rice_Allotment","Wheat_Allotment","Rice_MSP","Wheat_MSP","Total_Procurement_Cost"]])
+        st.dataframe(fut[["Year","Rice_Allotment","Wheat_Allotment","Total_Procurement_Cost"]])
+
 
     else:
         fig =  get_food_subsidy_graph_rice(fut, option, endYear)
@@ -183,8 +185,8 @@ def bplPopPlot(vis):
 
         st.plotly_chart(fig2, use_container_width=True)
 	
-    total_cost_fig = get_total_procurement_cost(fut[["Year", "Procurement_Cost"]], option, endYear)
-    st.plotly_chart(total_cost_fig, use_container_width=True)
+        total_cost_fig = get_total_procurement_cost(fut[["Year", "Total_Procurement_Cost"]], option, endYear)
+        st.plotly_chart(total_cost_fig, use_container_width=True)
 
     st.write(f'''
         ### Prediction Units:
@@ -209,7 +211,7 @@ def get_food_subsidy_graph_rice(df,option,endYear):
 							 line=dict(width=4)))
 	
 	fig.update_layout(
-		title={'text':f'Rice Allotment Forecasts for {option} till {endYear}'
+		title={'text':f'Rice Allotment Forecasts for {option} from 2021 till {endYear}'
 			  },
 		xaxis_title="Year",
 		yaxis_title="Allotment in '000 MTs",
@@ -230,7 +232,7 @@ def get_food_subsidy_graph_wheat(df,option,endYear):
 							 line=dict(width=4)))
 	
 	fig.update_layout(
-		title={'text':f'Wheat Allotment Forecasts for {option} till {endYear}'
+		title={'text':f'Wheat Allotment Forecasts for {option} from 2021 till {endYear}'
 			  },
 		xaxis_title="Year",
 		yaxis_title="Allotment in '000 MTs",
@@ -245,10 +247,10 @@ def get_food_subsidy_graph_wheat(df,option,endYear):
 
 def get_total_procurement_cost(df, option, endYear):
 	fig = go.Figure()
-	fig.add_trace(go.Scatter(x=df['Year'].astype(str), y=df['Procurement_Cost'],
+	fig.add_trace(go.Scatter(x=df['Year'].astype(str), y=df['Total_Procurement_Cost'],
 								name='Procurement Cost', line=dict(width=4)))
 	fig.update_layout(
-		title={'text':f'Total Procurement Costs of Rice and Wheat for {option} from 2020 till {endYear}'},
+		title={'text':f'Total Procurement Costs of Rice and Wheat for {option} from 2021 till {endYear}'},
 		xaxis_title="Year",
 		yaxis_title="Cost in Rs. Crores",
 		legend_title="Legend",
