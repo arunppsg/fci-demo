@@ -92,6 +92,38 @@ def load_pred_data(rp,bplChangeRate,pop,option,endYear):
     fut_data=fut_data.fillna(0)
     return fut_data
 
+def all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit,rice_inc,wheat_inc):
+    fut_data = load_pred_data(rp,bplChangeRate,pop,option,endYear)
+    fut_data["Rice_Allotment"]=rice_bpl_fit.predict(fut_data[["Population","bpl_pop","rice_perc"]])
+    fut_data["Wheat_Allotment"]=wheat_bpl_fit.predict(fut_data[["Population","bpl_pop","wheat_perc"]])
+
+    if option=="ALL-INDIA":
+        fut = fut_data.groupby(["year"]).sum()[['Rice_Allotment','Wheat_Allotment']].copy()
+        fut["year"]=list(range(2020,endYear+1))
+    else:
+        fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
+    fut[fut<0]=0
+    fut=fut.round(2)
+
+    fut["msp_rice"]=0
+    fut["msp_wheat"]=0
+
+  
+    for i in range(0,(endYear-2020)+1):
+        if i==0:
+            fut["msp_rice"].iloc[0]=1868
+            fut["msp_wheat"].iloc[0]=1925
+        elif i==1:
+            fut["msp_rice"].iloc[1]=1940
+            fut["msp_wheat"].iloc[1]=1975
+        else:
+            fut["msp_rice"].iloc[i]= fut["msp_rice"].iloc[i-1]*(1+(rice_inc/100))
+            fut["msp_wheat"].iloc[i]= fut["msp_wheat"].iloc[i-1]*(1+(wheat_inc/100))
+
+    fut['cost']=(fut['msp_rice']*fut["Rice_Allotment"]+fut['msp_wheat']*fut['Wheat_Allotment'])*(10000/10000000)
+
+    return fut 
+
 
 def bplPopPlot(vis):
     
