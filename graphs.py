@@ -12,7 +12,7 @@ def get_food_subsidy_graph():
 	fig.add_trace(go.Scatter(x=df['year'].astype(str), y=df['subsidy.incurred.current.year'], name='Subsidy Incurred',
 	                         line=dict(width=4)))
 	fig.update_layout(
-	    title={'text':'Subsidy Released in Current Year Vs Subsidy Incurred in Current Year'
+	    title={'text':'Subsidy Released For Current Year Vs Subsidy Incurred in Current Year'
 	          },
 	    xaxis_title="Financial Year",
 	    yaxis_title="Rupees in crores",
