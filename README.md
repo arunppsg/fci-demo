@@ -16,5 +16,4 @@ To deploy locally:
 ## PANEL CONTROLS
 ![alt text](output/img5.PNG)
 ![alt text](output/img6.PNG)
-![alt text](output/img7.PNG)
 
