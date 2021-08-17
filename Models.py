@@ -290,6 +290,9 @@ def bplPopPlot():
     ''')
     
     bplChangeRate = st.sidebar.number_input('bpl change rate( in % )')
+    rice_inc2=st.sidebar.number_input('Percentage change for MSP of rice')
+    wheat_inc2 = st.sidebar.number_input('Percentage change for MSP of wheat')
+    
     pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
     bpl_perc2011 = pd.read_excel("src/data/BPL data.xlsx")
     bpl_perc2011.rename({"2011-12 Perc of Persons":"percent"}, axis=1, inplace=True)
@@ -308,11 +311,14 @@ def bplPopPlot():
     wheat_bpl_fit = linear_model.LinearRegression().fit(rp[['Population','bpl_pop', 'wheat_moving_perc']], rp['wheat_allotment'])
 
     #prediction
+  
 
 
     option = st.sidebar.selectbox('choose state',list(rw['State.UT'].unique()))
 
     endYear=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
+    
+    
 
     fut_data = load_pred_data(rp,bplChangeRate,pop,option,endYear)
 
@@ -323,8 +329,25 @@ def bplPopPlot():
     fut[fut<0]=0
     fut=fut.round(2)
 
-
     
+    fut["msp_rice"]=0
+    fut["msp_wheat"]=0
+
+    for i in range(0,(endYear-2020)+1):
+        if i==0:
+            fut["msp_rice"].iloc[0]=1868
+            fut["msp_wheat"].iloc[0]=1925
+        elif i==1:
+            fut["msp_rice"].iloc[1]=1940
+            fut["msp_wheat"].iloc[1]=1975
+        else:
+            fut["msp_rice"].iloc[i]= fut["msp_rice"].iloc[i-1]*(1+(rice_inc2/100))
+            fut["msp_wheat"].iloc[i]= fut["msp_wheat"].iloc[i-1]*(1+(wheat_inc2/100))
+
+                                                    
+    fut['cost']=(fut['msp_rice']*fut["rice_allotment"]*10000) + (fut['msp_wheat']*fut['wheat_allotment']*10000)
+
+     
     st.write(f"""
     ### Rice and Wheat Forecasts for {option} from 2020 to {endYear}
     """)
@@ -333,5 +356,5 @@ def bplPopPlot():
     ### The Unit is '000 Metric Tonnes
     """)
 
-    st.dataframe(fut[["year","Rice_Allotment","Wheat_Allotment"]])
+    st.dataframe(fut[["year","Rice_Allotment","Wheat_Allotment","msp_rice","msp_wheat","cost"]])
 
