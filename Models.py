@@ -73,3 +73,135 @@ def load_rw():
     rw = rw[(rw['rice_moving_perc'] > 0) & (rw['wheat_moving_perc'] > 0)]
     return rw
 
+
+
+def table():
+
+    st.sidebar.write('''
+    ### Rice and Wheat Forecasts using population model
+    ''')
+    pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
+
+    rw=load_rw()
+
+    rp = pd.merge(rw, pop, on=['State.UT', 'year'], how='inner')
+    rp = remove_outliers(rp, ["Population", "rice_allotment", "rice_moving_perc", "wheat_moving_perc"])
+
+
+    rice_pop_fit = linear_model.LinearRegression().fit(rp[['Population', 'rice_moving_perc']], rp['rice_allotment'])
+
+
+    wp = pd.merge(rw, pop, on=['State.UT', 'year'], how='inner')
+    wp = remove_outliers(wp, ["Population", "wheat_allotment", "rice_moving_perc", "wheat_moving_perc"])
+    wheat_pop_fit = linear_model.LinearRegression().fit(wp[['Population', 'wheat_moving_perc']], wp['wheat_allotment'])
+
+
+
+    #prediction starts
+   
+    endYear2=st.sidebar.slider('Prediction upto (max year 2036)',2020,2036)
+
+    historicAvg = rp.groupby("State.UT").mean()[["rice_perc","wheat_perc"]]
+
+    pred_data=pd.merge(pop[pop["year"].between(2020,int(endYear2))], historicAvg, on=['State.UT'], how='inner')
+
+    pred_data["rice_allotment"]=0
+    pred_data["wheat_allotment"]=0
+
+
+    pred_data["rice_allotment"] = rice_pop_fit.predict(pred_data[['Population','rice_perc']])
+    pred_data["wheat_allotment"] = wheat_pop_fit.predict(pred_data[['Population','wheat_perc']])
+    pred_data=pred_data.round(2)
+
+
+    st.write("""
+    ### Table 2
+    """)
+    st.write(f"""
+    ## Rice Forecasts for 2020- {endYear2}
+    """)
+
+    st.write("""
+    ### The Unit is '000 Metric Tonnes
+    """)
+
+    rice_allot=pred_data[["year","State.UT","rice_allotment"]]
+
+
+
+    newf = rice_allot.pivot(index='State.UT', columns='year')
+    newf.columns=list(range(2020,endYear2+1))
+    newf[newf<0]=0
+
+    st.dataframe(newf)
+
+
+
+    st.write("""
+    ### Table 3
+    """)
+    st.write(f"""
+    ## Wheat Forecasts for 2020-{endYear2}
+    """)
+
+    st.write("""
+    ### The Unit is '000 Metric Tonnes
+    """)
+
+    wheat_allot=pred_data[["year","State.UT","wheat_allotment"]]
+    newf2 = wheat_allot.pivot(index='State.UT', columns='year')
+    newf2.columns=list(range(2020,endYear2+1))
+    newf2[newf2<0]=0
+
+    st.dataframe(newf2)
+
+
+    st.write(f"""
+    ### Table 5.2 Rice and Wheat Procurement Forecasts for 2020 - {endYear2}
+    """)
+
+    st.write("""
+    ### The Unit is '000 Metric Tonnes
+    """)
+
+    r=pred_data[["year","State.UT","rice_allotment","wheat_allotment"]].copy()
+    r=r.groupby("year").sum().copy()
+    r["total"]=r["rice_allotment"]+r["wheat_allotment"]
+
+    r["msp_rice"]=0
+    r["msp_wheat"]=0
+
+    rice_inc=st.sidebar.number_input('Percentage change for MSP of rice')
+    wheat_inc = st.sidebar.number_input('Percentage change for MSP of wheat')
+
+    for i in range(0,(endYear2-2020)+1):
+        if i==0:
+            r["msp_rice"].iloc[0]=1868
+            r["msp_wheat"].iloc[0]=1925
+        elif i==1:
+            r["msp_rice"].iloc[1]=1940
+            r["msp_wheat"].iloc[1]=1975
+        else:
+            r["msp_rice"].iloc[i]= r["msp_rice"].iloc[i-1]*(1+(rice_inc/100))
+            r["msp_wheat"].iloc[i]= r["msp_wheat"].iloc[i-1]*(1+(wheat_inc/100))
+
+                                                    
+    r['cost']=(r['msp_rice']*r["rice_allotment"]+r['msp_wheat']*r['wheat_allotment'])
+
+    r.rename({"rice_allotment": "Rice Procurement", 
+           "wheat_allotment": "Wheat Procurement"}, 
+          axis = "columns", inplace = True)
+
+    st.dataframe(r[["Rice Procurement","Wheat Procurement"]])
+
+
+
+    st.write(f"""
+    ### Table 5.3 Total Grain Procurement and Cost Forecasts for 2020 - {endYear2}
+    """)
+
+    r.rename({"total": "Total Grain Procurement (in '000 MTs)", 
+           "cost": "Total Procurement Cost(in Crores)"}, 
+          axis = "columns", inplace = True)
+    st.dataframe(r[["Total Grain Procurement (in '000 MTs)","Total Procurement Cost(in Crores)"]])
+
