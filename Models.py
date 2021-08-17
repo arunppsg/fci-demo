@@ -205,3 +205,19 @@ def table():
           axis = "columns", inplace = True)
     st.dataframe(r[["Total Grain Procurement (in '000 MTs)","Total Procurement Cost(in Crores)"]])
 
+
+def load_pred_data(rp,bplChangeRate,pop,option,endYear):
+    
+    future_bpl=rp[rp['year']==2019][["State.UT","bpl_pop","year"]]
+    futurePopulation=pop[((pop['year']>=2019) & (pop['year']<=endYear))]
+    fut_data = pd.merge(futurePopulation, future_bpl, on=['State.UT', 'year'], how='left')
+    for year in range(2020, endYear+1):
+        for state in list(fut_data['State.UT'].unique()):
+            idx = fut_data[((fut_data['State.UT'] == state) & (fut_data['year'] == year))].index
+            fut_data['bpl_pop'][idx]= (fut_data[((fut_data['State.UT'] == state) & (fut_data['year'] == year-1))]['bpl_pop'].values)*(1+bplChangeRate)  
+    fut_data["rice_perc"]=rp[rp["State.UT"]==option]["rice_perc"].mean()
+    fut_data["wheat_perc"]=rp[rp["State.UT"]==option]["wheat_perc"].mean()
+
+    fut_data=fut_data[fut_data['year']>2019]
+    fut_data=fut_data.fillna(0)
+    return fut_data
