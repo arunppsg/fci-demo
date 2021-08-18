@@ -97,7 +97,7 @@ def all_pred_data(rp,bplChangeRate,pop,option,endYear,rice_bpl_fit,wheat_bpl_fit
     fut_data["Wheat_Allotment"]=wheat_bpl_fit.predict(fut_data[["Population","bpl_pop","wheat_perc"]])
 
     if option=="ALL-INDIA":
-        fut = fut_data.groupby(["year"]).sum()[['Rice_Allotment','Wheat_Allotment']].copy()
+        fut = fut_data.groupby(["year"]).sum()[['Rice_Allotment','Wheat_Allotment']].reset_index().copy()
         fut["year"]=list(range(2021,endYear+1))
     else:
         fut=fut_data[fut_data['State.UT']==option][['year','Rice_Allotment','Wheat_Allotment']].copy()
@@ -199,6 +199,7 @@ def bplPopPlot(vis):
 		### Model used for rice prediction
 		$rice\_allotment = C_0 population + C_1 bpl\_population + C_2 rice\_moving\_perc + C_3$
 		''')
+
     st.write(f'''
 		### Model used for wheat prediction
 		$wheat\_allotment = D_0 population + D_1 bpl\_population + D_2 wheat\_moving\_perc + D_3$
