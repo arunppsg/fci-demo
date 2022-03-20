@@ -43,9 +43,10 @@ def generate_bpl_data(pop, bpl, bpl_cr):
     state = "ANDHRA PR"
 
     bpl = bpl[~((bpl["year"] > 2013) & (bpl["State.UT"] == state))]
-
+    # Population : population, year, state.ut
+    # BPL data: state.ut, year, bpl_perc
     bpl = pd.merge(bpl, pop, on=["State.UT", "year"])
-    bpl["bpl_pop"] = bpl["percent"] * bpl["Population"]
+    bpl["bpl_pop"] = bpl["percent"] * bpl["Population"] / 100
     bpl = bpl[(bpl["bpl_pop"] > 0)]
     bpl["log_bpl_pop"] = np.log1p(bpl["Population"])
     return bpl
