@@ -14,18 +14,25 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def remove_outliers(df, cols):
+    # Outliers are points which are more than 3 standard deviations from
+    # the mean
     for col in cols:
         df = df[np.abs(stats.zscore(df[col]) <= 3)].reset_index(drop=True)
     return df
 
 
 def generate_bpl_data(pop, bpl, bpl_cr):
+    # Collecting unique states
     states = bpl["State.UT"].unique()
-    states
+    # For each state
     for state in states:
+        # Get 2011 BPL population percentage which is the percentage of
+        # population under BPL as calculated by Census 2011
         perc = bpl[(bpl["State.UT"] == state) & (bpl["year"] == 2011)][
             "percent"
         ].values[0]
+        # For every year from 2012 onwards (the years for
+        # which we have no data)
         for year in range(2012, 2020):
             perc = perc + bpl_cr
             new_entry = pd.DataFrame(
@@ -38,7 +45,7 @@ def generate_bpl_data(pop, bpl, bpl_cr):
     bpl = bpl[~((bpl["year"] > 2013) & (bpl["State.UT"] == state))]
 
     bpl = pd.merge(bpl, pop, on=["State.UT", "year"])
-    bpl["bpl_pop"] = bpl["percent"] * bpl["Population"] / 100
+    bpl["bpl_pop"] = bpl["percent"] * bpl["Population"]
     bpl = bpl[(bpl["bpl_pop"] > 0)]
     bpl["log_bpl_pop"] = np.log1p(bpl["Population"])
     return bpl
@@ -89,12 +96,12 @@ def load_rw():
     return rw
 
 
-def load_pred_data(rp, bplChangeRate, pop, option, endYear):
-
+def load_pred_data(rp, bpl_change_rate, pop, option, endYear):
+    # Makes predictions for datapoints
     future_bpl = rp[rp["year"] == 2019][["State.UT", "bpl_pop", "year"]]
-    futurePopulation = pop[((pop["year"] >= 2019) & (pop["year"] <= endYear))]
+    future_population = pop[((pop["year"] >= 2019) & (pop["year"] <= endYear))]
     fut_data = pd.merge(
-        futurePopulation, future_bpl, on=["State.UT", "year"], how="left"
+        future_population, future_bpl, on=["State.UT", "year"], how="left"
     )
     for year in range(2020, endYear + 1):
         for state in list(fut_data["State.UT"].unique()):
@@ -105,7 +112,7 @@ def load_pred_data(rp, bplChangeRate, pop, option, endYear):
                 fut_data[
                     ((fut_data["State.UT"] == state) & (fut_data["year"] == year - 1))
                 ]["bpl_pop"].values
-            ) * (1 + bplChangeRate)
+            ) * (1 + bpl_change_rate / 100) # bpl change rate is percentage, hence divide by 100
     fut_data["rice_perc"] = rp[rp["State.UT"] == option]["rice_perc"].mean()
     fut_data["wheat_perc"] = rp[rp["State.UT"] == option]["wheat_perc"].mean()
 
@@ -116,7 +123,7 @@ def load_pred_data(rp, bplChangeRate, pop, option, endYear):
 
 def all_pred_data(
     rp,
-    bplChangeRate,
+    bpl_change_rate,
     pop,
     option,
     endYear,
@@ -125,7 +132,7 @@ def all_pred_data(
     rice_inc,
     wheat_inc,
 ):
-    fut_data = load_pred_data(rp, bplChangeRate, pop, option, endYear)
+    fut_data = load_pred_data(rp, bpl_change_rate, pop, option, endYear)
     fut_data["Rice_Allotment"] = rice_bpl_fit.predict(
         fut_data[["Population", "bpl_pop", "rice_perc"]]
     )
@@ -153,9 +160,11 @@ def all_pred_data(
 
     for i in range(0, (endYear - 2021) + 1):
         if i == 0:
+            # The actual minimum support price for the year 2020-21
             fut["msp_rice"].iloc[0] = 1868
             fut["msp_wheat"].iloc[0] = 1925
         elif i == 1:
+            # The actual msp for the year 2021-22
             fut["msp_rice"].iloc[1] = 1940
             fut["msp_wheat"].iloc[1] = 1975
         else:
@@ -174,21 +183,21 @@ def all_pred_data(
     return fut
 
 
-def bplPopPlot(vis):
-
+def bpl_population_plot(vis):
+    # Entry point
     st.sidebar.write(
         """
     ### Rice and Wheat Forecasts
     """
     )
 
-    bplChangeRate = st.sidebar.number_input("BPL Change Rate(in %)")
+    bpl_change_rate = st.sidebar.number_input("BPL Change Rate(in %)")
     pop = pd.read_excel("src/data/projected_population_by_state_2012_2036.xlsx")
     bpl_perc2011 = pd.read_excel("src/data/BPL data.xlsx")
     bpl_perc2011.rename({"2011-12 Perc of Persons": "percent"}, axis=1, inplace=True)
     bpl_perc2011["year"] = 2011
 
-    bpl = generate_bpl_data(pop, bpl_perc2011, bplChangeRate)
+    bpl = generate_bpl_data(pop, bpl_perc2011, bpl_change_rate)
 
     rw = load_rw()
 
@@ -200,6 +209,7 @@ def bplPopPlot(vis):
             "Population",
             "bpl_pop",
             "rice_allotment",
+            "wheat_allotment",
             "rice_moving_perc",
             "wheat_moving_perc",
         ],
@@ -234,7 +244,7 @@ def bplPopPlot(vis):
 
     fut = all_pred_data(
         rp,
-        bplChangeRate,
+        bpl_change_rate,
         pop,
         option,
         endYear,

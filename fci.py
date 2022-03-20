@@ -13,7 +13,8 @@ st.title(
 
 
 vis = st.selectbox("Choose Visualization Type", ["Table", "Line Plot"])
-models.bplPopPlot(vis)
+models.bpl_population_plot(vis)
+
 
 st.write("## Other Statistics of Food Corporation of India")
 st.plotly_chart(graphs.get_food_subsidy_graph(), use_container_width=True)
