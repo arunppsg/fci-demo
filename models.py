@@ -176,10 +176,14 @@ def all_pred_data(
                 1 + (wheat_inc / 100)
             )
 
+    fut["Rice_Allotment"] = fut["Rice_Allotment"] * 1000 * 1000 # converting into kg from '000 MT
+    fut["Wheat_Allotment"] = fut["Wheat_Allotment"] * 1000 * 1000
+    fut["msp_rice"] = fut["msp_rice"] / 100 # Converting to per kg
+    fut["msp_wheat"] = fut["msp_wheat"] / 100 # Converting to per kg
     fut["cost"] = (
         fut["msp_rice"] * fut["Rice_Allotment"]
         + fut["msp_wheat"] * fut["Wheat_Allotment"]
-    ) * (10000 / 10000000)
+    )
 
     return fut
 
