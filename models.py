@@ -57,8 +57,8 @@ def load_rw():
     wheat = pd.read_excel("src/data/wheat.xlsx")
     # print (rice.shape)
 
-    rice = remove_outliers(rice, ["offtake", "allotment"])
-    wheat = remove_outliers(wheat, ["offtake", "allotment"])
+#    rice = remove_outliers(rice, ["offtake", "allotment"])
+#    wheat = remove_outliers(wheat, ["offtake", "allotment"])
     # print (rice.shape)
 
     r = rice.copy()
@@ -208,17 +208,17 @@ def bpl_population_plot(vis):
 
     rp = pd.merge(rw, bpl, on=["State.UT", "year"], how="inner")
 
-    rp = remove_outliers(
-        rp,
-        [
-            "Population",
-            "bpl_pop",
-            "rice_allotment",
-            "wheat_allotment",
-            "rice_moving_perc",
-            "wheat_moving_perc",
-        ],
-    )
+#    rp = remove_outliers(
+#        rp,
+#        [
+#            "Population",
+#            "bpl_pop",
+#            "rice_allotment",
+#            "wheat_allotment",
+#            "rice_moving_perc",
+#            "wheat_moving_perc",
+#        ],
+#    )
 
     rice_bpl_fit = linear_model.LinearRegression().fit(
         rp[["Population", "bpl_pop", "rice_moving_perc"]], rp["rice_allotment"]
