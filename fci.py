@@ -7,7 +7,7 @@ import models
 import graphs
 
 st.title(
-    """FCI COST FORECASTING
+    """FCI FORECASTING
 """
 )
 
