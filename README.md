@@ -1,5 +1,7 @@
 # fci-demo
 
+Link to draft paper can be found [here](https://arunppsg.github.io/files/FCI.pdf).
+
 Interactive demo is available at [https://share.streamlit.io/arunppsg/fci-demo/main/fci.py](https://share.streamlit.io/arunppsg/fci-demo/main/fci.py)
 
 
